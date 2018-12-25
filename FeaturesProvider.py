@@ -4,8 +4,8 @@ import csv
 import math
 
 #for versioning the output features files
-i = 73
-j = 73
+i = 7311
+j = 731122
 
 #datasetFile = 'E:/Spam Detection Project on Yelp/Datasets/Balanced Dataset 43000.csv'
 datasetFile = 'E:/Spam Detection Project on Yelp/Datasets/Hotels_Dataset_73000.csv'
@@ -21,6 +21,8 @@ indexForReviewsCount = 14
 indexForHelpfulness = 4
 indexForText = 2
 indexForlabel = 20
+indexForRating = 3
+indexForHotelsId = 8
 
 
 def getSpammerFeatures(datasetFile, spammerFeaturesFile, indexForReviewerId, indexForDate, indexForFirstCount ,
@@ -30,10 +32,12 @@ def getSpammerFeatures(datasetFile, spammerFeaturesFile, indexForReviewerId, ind
     REFeature = sp.getReviewingEarly(datasetFile, indexForFirstCount, indexForReviewsCount)
     AFFeature = sp.getAccountFreshness(datasetFile,indexForReviewerId,indexForDate, firstReviewerId)
     HelpfullFeature = sp.getHelpfulness(datasetFile,indexForReviewerId,indexForHelpfulness,firstReviewerId)
+    #CosineFeatureForReviewer = sp.getUserCosFeatures('E:/Spam Detection Project on Yelp/Features/SpammerFeatures/cosineOut.csv', indexForReviewerId,firstReviewerId, indexForText)
 
     MNRFeatureMapped = mappingToDataset(datasetFile,MNRFeature,indexForReviewerId)
     AFFeatureMapped = mappingToDataset(datasetFile,AFFeature,indexForReviewerId)
     HelpfullFeatureMapped = mappingToDataset(datasetFile,HelpfullFeature,indexForReviewerId)
+    #CosineFeatureForReviewerMapped = mappingToDataset(datasetFile, CosineFeatureForReviewer, indexForReviewerId)
 
     AllSpammerFeatures = [MNRFeatureMapped,AFFeatureMapped,HelpfullFeatureMapped,REFeature]
     writeCSVListOfList(spammerFeaturesFile,AllSpammerFeatures)
@@ -58,22 +62,24 @@ def getCosineSimilarity(datasetFile,outputFilePrepared,outputFileFeature,indexFo
 #get the text feature and the cosine
 def getTextFeatures(datasetFile,textFeaturesFile1, outputFileCosine ,indexForText,indexForlabel):
     textFeaturesFile = open(textFeaturesFile1,'w')
-    avgLenghtDeviation = tf.getAveargeLenghtOfReviews(datasetFile,indexForText,indexForlabel)
+    #avgLenghtDeviation = tf.getAveargeLenghtOfReviews(datasetFile,indexForText,indexForlabel)
 
+    RatingDevFeature = tf.calculateRatingDeviation(datasetFile,indexForReviewerId,indexForRating,indexForHotelsId,firstReviewerId)
+    writeCSVListOfListRatingDev('E:\Spam Detection Project on Yelp\Features\TextFeatures\RatingDevFeature.csv',RatingDevFeature)
     #getCosineSimilarity(datasetFile,'E:/Spam Detection Project on Yelp/Features/TextFeatures/prepared Data For Cosine.csv'
     #                   ,outputFileCosine,indexForText)
-    textFeaturesFile.write('Review Lenght Deviation,Url Mention,Avearge Word Lenght,POS Adj,POS Verb,Filtered\n')
-    with open(datasetFile) as csvfile:
-        CSVReader = csv.reader(csvfile, delimiter=',')
-        next(csvfile)
-        for row in CSVReader:
-            adj, verb = tf.get_pos(row[indexForText])
-            textFeaturesFile.write(str(tf.getReviewLenghtDeviation(row[indexForText], avgLenghtDeviation)) + ',' +
-                                   str(tf.is_url(row[indexForText])) + ',' + str(tf.getAveargeWordLenght(row[indexForText])) + ',' +
-                                   str(adj)+ ',' + str(verb)+ ','+str(row[indexForlabel])+'\n')
+    #textFeaturesFile.write('Review Lenght Deviation,Url Mention,Avearge Word Lenght,POS Adj,POS Verb,Filtered\n')
+    # with open(datasetFile) as csvfile:
+    #     CSVReader = csv.reader(csvfile, delimiter=',')
+    #     next(csvfile)
+    #     for row in CSVReader:
+            # adj, verb = tf.get_pos(row[indexForText])
+            # textFeaturesFile.write(str(tf.getReviewLenghtDeviation(row[indexForText], avgLenghtDeviation)) + ',' +
+            #                        str(tf.is_url(row[indexForText])) + ',' + str(tf.getAveargeWordLenght(row[indexForText])) + ',' +
+            #                        str(adj)+ ',' + str(verb)+ ','+str(row[indexForlabel])+'\n')
             # features_file.write(str(ratingDeviation(row[3])))
             # features_file.write(',')
-        textFeaturesFile.close()
+        #textFeaturesFile.close()
 
 #-------------------------------------------------------------
 
@@ -92,10 +98,11 @@ def get_cosine(vec1, vec2):
 
 #-------------------------------------------------------------
 def write_csv(path, result):
-    with open(path, 'wb') as csvFile:
+    with open(path, 'w') as csvFile:
         writer = csv.writer(csvFile)
         for i in range(len(result)):
-            writer.writerow([result[i]])
+            csvFile.write(result[i])
+            csvFile.write('\n')
     csvFile.close()
 #----------------------------------------------------------------
 def mappingToDataset(datasetFile,featuresList, indexForReviewerId):
@@ -139,6 +146,17 @@ def writeCSVListOfList(path, result):
             for i in range(len(result)):
                 csvFile.write(str(result[i][j]) + ',')
             csvFile.write('\n')
+    csvFile.close()
+#----------------------------------------------------------------------------
+def writeCSVListOfListRatingDev(path, result):
+    with open(path, 'w') as csvFile:
+        csvFile.write('Rating Deviation\n')
+        counter = 0
+        for j in range(len(result)):
+            for i in range(len(result[counter])):
+                csvFile.write(str(result[j][i]) + ',')
+                csvFile.write('\n')
+            counter += 1
     csvFile.close()
 
 #--------------------------------------------------------------------------------------------------------------------

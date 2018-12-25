@@ -1,3 +1,11 @@
+import argparse
+import os
+import shutil
+import sys
+import tempfile
+
+#import tensorflow as tf
+import tensorflow_hub as hub
 import nltk
 import csv
 import math
@@ -362,3 +370,82 @@ def PrepareForCosine(datasetFile,outputFile1,indexForText):
             text2vector.append(text_to_vector(pre))
     return preData, text2vector
 #----------------------------------------------------------------------------------------------------------
+#gets the symbols rate and numbers rate in the text
+def getSymbolAndNumberRate(message):
+    symbolCounter = 0
+    numberCounter = 0
+    numbers = "0123456789"
+    symbols = "\"!#$%&'()*+,-./:;<=>?@[\]^_`{|}~"
+    for i in message:
+        if i in numbers:
+            numberCounter+=1
+        if i in symbols:
+            symbolCounter+=1
+
+    return numberCounter,symbolCounter
+
+
+# gets the numbers of GetCapitalize
+def GetCapitalize(message):
+
+    Capital = sum(1 for c in message if c.isupper())
+    return Capital
+
+#-------------------------------------------------------------------------------------------------------
+# Calculate the deviation of the review rating from other reviews on other items
+def getRatingDeviation(reviewersReviewsRatings, resturantIds):
+    counter = 0
+    ratingMean = 0
+    sum = 0
+    deviations = []
+    for i in range(len(reviewersReviewsRatings)):
+        for j in range(len(reviewersReviewsRatings)):
+            if(resturantIds[i] != resturantIds[j]):
+                sum += int(reviewersReviewsRatings[j])
+                counter += 1
+        if(counter == 0):
+            deviations.append(0)
+            continue
+        ratingMean = float(sum) / counter
+        deviations.append(abs(float(reviewersReviewsRatings[i]) - ratingMean))
+        sum = 0
+        counter = 0
+
+    return deviations
+
+
+# This functoin returns the reviews for each reviewer in a list of lists.
+def calculateRatingDeviation(datasetFile, indexForReviewerId, indexForRating, indexForHotelsId, firstReviewerId):
+    reviewersRatings = []
+
+    with open(datasetFile) as csvfile:
+        CSVReader = csv.reader(csvfile, delimiter=',')
+        next(csvfile)
+        reviewerId = firstReviewerId
+        deviations = []
+        resturantIds = []
+        counter = 0
+        for row in CSVReader:
+            if (reviewerId == row[indexForReviewerId]):
+                reviewersRatings.append(row[indexForRating])
+            else:
+                deviations.append(getRatingDeviation(reviewersRatings, resturantIds))
+                reviewersRatings = []
+                reviewersRatings.append(row[indexForRating])
+                counter += 1
+                print ("done the " + str(counter) + "reviewer")
+            resturantIds.append(row[indexForHotelsId])
+            reviewerId = row[indexForReviewerId]
+        deviations.append(getRatingDeviation(reviewersRatings, resturantIds))
+
+    csvfile.close()
+    return deviations
+#----------------------------------------------------------------------------------------------------------
+#
+m = hub.Module("path/to/a/module_dir")
+# embed = hub.Module("https://tfhub.dev/google/"
+# "universal-sentence-encoder/1")
+# embedding = embed([
+# "The quick brown fox jumps over the lazy dog."])
+print('embedding')
+#print(embedding)
