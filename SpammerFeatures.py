@@ -5,6 +5,9 @@ from datetime import datetime
 #https://xrds.acm.org/blog/2017/07/power-wordnet-use-python/
 #--------------------------------------------------------------------------------------------
 #takes a list of dates and return the max occurance of the date
+import TextFeatures
+
+
 def ReviewerMNR(reviewerDates):
     mnrCounter = []
     counter = 0
@@ -142,4 +145,53 @@ def getAveargeRatingOfNonSpam(datasetFile, indexForRating, indexForLabel):
     avg = sum/count
     return avg
 #print(getAveargeRatingOfNonSpam('E:/Spam Detection Project on Yelp/Datasets/Balanced Dataset 43000.csv',3, 8))
-##################################################################################################################
+
+#---------------------------------------------------------------------------------------------------------------
+#Cosine simliarity for reviewer
+def getReviewerCosineSimliarity(userReviews):
+    max = 0
+    index1 = 0
+    index2 = 0
+    text2vector = []
+    for review in userReviews:
+        pre = TextFeatures.preProcessing(review)
+        text2vector.append(TextFeatures.text_to_vector(pre))
+
+    for review1 in text2vector:
+        index1 += 1
+        for review2 in text2vector:
+            index2 += 1
+            if index1 != index2:
+                current = TextFeatures.get_cosine(review1,review2)
+                if (current > max ):
+                    max=current
+        index2 = 0
+    return max
+
+
+def getUserCosFeatures(datasetFile, indexForReviewerId, firstReviewerId, indexForText):
+    CosineFeature = []
+    counter = 0
+    max = 0
+    userReviews = []
+
+    with open(datasetFile) as csvfile:
+        CSVReader = csv.reader(csvfile, delimiter=',')
+        next(csvfile)
+        reviewerId = firstReviewerId
+        for row in CSVReader:
+            if(reviewerId == row[indexForReviewerId]):
+                userReviews.append(row[indexForText])
+            else:
+                feature = getReviewerCosineSimliarity(userReviews)
+                CosineFeature.append(feature)
+                counter += 1
+                userReviews.clear()
+                userReviews.append(row[indexForText])
+            reviewerId = row[indexForReviewerId]
+    feature = getReviewerCosineSimliarity(userReviews)
+    CosineFeature.append(feature)
+    print('len is :',len(CosineFeature))
+    csvfile.close()
+    return CosineFeature
+
